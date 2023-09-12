@@ -20,11 +20,11 @@ class Parameters:
 
 
 class Vacancy:
-    def __init__(self, name, url, salary, description):
+    def __init__(self, name, url, salary, requirements):
         self.__name = name
         self.__url = url
         self.__salary = salary
-        self.__description = description
+        self.__requirements = requirements
 
     def name(self):
         return self.__name
@@ -35,8 +35,8 @@ class Vacancy:
     def salary(self):
         return self.__salary
 
-    def description(self):
-        return self.__description
+    def requirements(self):
+        return self.__requirements
 
 
 class JobSeeker(ABC):
@@ -76,6 +76,21 @@ class HeadHunterAPI(JobSeeker):
         return data
 
     def vacancy_filtering(self):
+        filtered_vacancies = []
+        for vac in self.vacancy_data:
+            name_vacancy = vac.get('name')
+            url_vacancy = vac.get('apply_alternate_url')
+            if vac.get('salary') == 'null':
+                salary_vacancy = 'По договоренности'
+            else:
+                salary_vacancy = f'от {vac.get("salary").get("from")} до {vac.get("salary").get("to")}'
+            experience_vacancy = vac.get('experience').get('name')
+            filtered_vacancy = {'name': name_vacancy,
+                                'url': url_vacancy,
+                                'salary': salary_vacancy,
+                                'experience': experience_vacancy}
+            filtered_vacancies.append(filtered_vacancy)
+        return filtered_vacancies
 
 
 class SuperJobAPI(JobSeeker):
@@ -100,6 +115,21 @@ class SuperJobAPI(JobSeeker):
         return data
 
     def vacancy_filtering(self):
+        filtered_vacancies = []
+        for vac in self.vacancy_data:
+            name_vacancy = vac.get('profession')
+            url_vacancy = vac.get('link')
+            if vac.get('salary') == 'null':
+                salary_vacancy = 'По договоренности'
+            else:
+                salary_vacancy = f'от {vac.get("payment_from")} до {vac.get("payment_to")}'
+            experience_vacancy = vac.get('experience').get('title')
+            filtered_vacancy = {'name': name_vacancy,
+                                'url': url_vacancy,
+                                'salary': salary_vacancy,
+                                'requirements': experience_vacancy}
+            filtered_vacancies.append(filtered_vacancy)
+        return filtered_vacancies
 
 
 class JSONSaver:
@@ -136,8 +166,8 @@ hh_api = HeadHunterAPI(params)
 superjob_api = SuperJobAPI(params)
 
 # Получение вакансий с разных платформ
-hh_vacancies = hh_api.get_vacancies()
-superjob_vacancies = superjob_api.get_vacancies()
+hh_vacancies = hh_api.vacancy_filtering()
+superjob_vacancies = superjob_api.vacancy_filtering()
 
 print(hh_vacancies)
 print(superjob_vacancies)
