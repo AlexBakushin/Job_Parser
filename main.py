@@ -20,11 +20,12 @@ class Parameters:
 
 
 class Vacancy:
-    def __init__(self, name, url, salary, requirements):
-        self.__name = name
-        self.__url = url
-        self.__salary = salary
-        self.__requirements = requirements
+    def __init__(self, vacancy):
+        self.__name = vacancy.get('name')
+        self.__url = vacancy.get('url')
+        self.__salary = vacancy.get('salary')
+        self.__experience = vacancy.get('experience')
+        self.__requirement_and_responsibility = vacancy.get('requirement_and_responsibility')
 
     def name(self):
         return self.__name
@@ -35,8 +36,11 @@ class Vacancy:
     def salary(self):
         return self.__salary
 
-    def requirements(self):
-        return self.__requirements
+    def experience(self):
+        return self.__experience
+
+    def requirement_and_responsibility(self):
+        return self.__requirement_and_responsibility
 
 
 class JobSeeker(ABC):
@@ -80,15 +84,18 @@ class HeadHunterAPI(JobSeeker):
         for vac in self.vacancy_data:
             name_vacancy = vac.get('name')
             url_vacancy = vac.get('apply_alternate_url')
-            if vac.get('salary') == 'null':
+            if vac.get('salary') is None:
                 salary_vacancy = 'По договоренности'
             else:
                 salary_vacancy = f'от {vac.get("salary").get("from")} до {vac.get("salary").get("to")}'
             experience_vacancy = vac.get('experience').get('name')
+            requirement = f"Требования: {vac.get('snippet').get('requirement')}\nОбязаности: {vac.get('snippet').get('responsibility')}"
+            requirement_and_responsibility = requirement.replace('\n', '')
             filtered_vacancy = {'name': name_vacancy,
                                 'url': url_vacancy,
                                 'salary': salary_vacancy,
-                                'experience': experience_vacancy}
+                                'experience': experience_vacancy,
+                                'requirement_and_responsibility': requirement_and_responsibility}
             filtered_vacancies.append(filtered_vacancy)
         return filtered_vacancies
 
@@ -119,15 +126,18 @@ class SuperJobAPI(JobSeeker):
         for vac in self.vacancy_data:
             name_vacancy = vac.get('profession')
             url_vacancy = vac.get('link')
-            if vac.get('salary') == 'null':
+            if int(vac.get('payment_from')) == 0:
                 salary_vacancy = 'По договоренности'
             else:
                 salary_vacancy = f'от {vac.get("payment_from")} до {vac.get("payment_to")}'
             experience_vacancy = vac.get('experience').get('title')
+            requirement = vac.get('candidat')
+            requirement_and_responsibility = requirement.replace('\n', '')
             filtered_vacancy = {'name': name_vacancy,
                                 'url': url_vacancy,
                                 'salary': salary_vacancy,
-                                'requirements': experience_vacancy}
+                                'requirements': experience_vacancy,
+                                'requirement_and_responsibility': requirement_and_responsibility}
             filtered_vacancies.append(filtered_vacancy)
         return filtered_vacancies
 
@@ -169,11 +179,25 @@ superjob_api = SuperJobAPI(params)
 hh_vacancies = hh_api.vacancy_filtering()
 superjob_vacancies = superjob_api.vacancy_filtering()
 
-print(hh_vacancies)
-print(superjob_vacancies)
+# Обьединение списков вакансий с разных платформ
+vacancies_full_list = hh_vacancies + superjob_vacancies
+
+#print(vacancies_full_list)
 
 # Создание экземпляра класса для работы с вакансиями
-# vacancy = Vacancy()
+names_vac = []
+for i in range(len(vacancies_full_list)):
+    names_vac.append(f'vacancy{i}')
+    names_vac[i] = Vacancy(vacancies_full_list[i])
+
+
+print(names_vac[0].__dict__)
+print(names_vac[1].__dict__)
+print(names_vac[2].__dict__)
+print(names_vac[3].__dict__)
+print(names_vac[4].__dict__)
+print(names_vac[5].__dict__)
+print(names_vac[6].__dict__)
 
 # Сохранение информации о вакансиях в файл
 # json_saver = JSONSaver()
