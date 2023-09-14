@@ -23,9 +23,89 @@ class Vacancy:
     def __init__(self, vacancy):
         self.__name = vacancy.get('name')
         self.__url = vacancy.get('url')
-        self.__salary = vacancy.get('salary')
+        self.__salary_full = vacancy.get('salary')
+        if self.__salary_full != 'По договоренности':
+            self.__salary_min = vacancy.get('salary').rsplit(None, 3)[1]
+            self.__salary_max = vacancy.get('salary').rsplit(None, 3)[3]
+        else:
+            self.__salary_min = 0
+            self.__salary_max = 0
+        if self.__salary_max == 0:
+            self.salary = int(self.__salary_min)
+        else:
+            self.salary = int(self.__salary_max)
         self.__experience = vacancy.get('experience')
         self.__requirement_and_responsibility = vacancy.get('requirement_and_responsibility')
+
+    def __str__(self):
+        return f"{self.__name} ({self.__salary_full}, {self.__url}, {self.__experience}," \
+               f" {self.__requirement_and_responsibility})"
+
+    def __add__(self, other):
+        """
+        Суммирование подпищиков каналов
+        :param other: количество подпищиков другого канала
+        :return: общее количество подпищиков или ошибка
+        """
+        if type(other) == Vacancy:
+            return self.salary + other.salary
+        else:
+            raise TypeError
+
+    def __sub__(self, other):
+        """
+        Вычитание подпищиков каналов
+        :param other: количество подпищиков другого канала
+        :return: разница количества подпищиков или ошибка
+        """
+        if type(other) == Vacancy:
+            return self.salary - other.salary
+        else:
+            raise TypeError
+
+    def __lt__(self, other):
+        """
+        Если количество подпищиков первого канала меньше количества подпищиков второго
+        :param other: количество подпищиков другого канала
+        :return: True или False или ошибка
+        """
+        if type(other) == Vacancy:
+            return self.salary < other.salary
+        else:
+            raise TypeError
+
+    def __le__(self, other):
+        """
+        Если количество подпищиков первого канала меньше или равно количеству подпищиков второго
+        :param other: количество подпищиков другого канала
+        :return: True или False или ошибка
+        """
+        if type(other) == Vacancy:
+            return self.salary <= other.salary
+        else:
+            raise TypeError
+
+    def __gt__(self, other):
+        """
+        Если количество подпищиков первого канала больше количества подпищиков второго
+        :param other: количество подпищиков другого канала
+        :return: True или False или ошибка
+        """
+        if type(other) == Vacancy:
+            return self.salary > other.salary
+        else:
+            raise TypeError
+
+    def __ge__(self, other):
+        """
+        Если количество подпищиков первого канала больше или равно количеству подпищиков второго
+        :param other: количество подпищиков другого канала
+        :return: True или False или ошибка
+        """
+        if type(other) == Vacancy:
+            return self.salary >= other.salary
+        else:
+            raise TypeError
 
     def name(self):
         return self.__name
@@ -33,8 +113,8 @@ class Vacancy:
     def url(self):
         return self.__url
 
-    def salary(self):
-        return self.__salary
+    def salary_full(self):
+        return self.__salary_full
 
     def experience(self):
         return self.__experience
@@ -87,10 +167,17 @@ class HeadHunterAPI(JobSeeker):
             if vac.get('salary') is None:
                 salary_vacancy = 'По договоренности'
             else:
-                salary_vacancy = f'от {vac.get("salary").get("from")} до {vac.get("salary").get("to")}'
+                if vac.get("salary").get("from") is None:
+                    salary_vacancy = f'от {0} до {vac.get("salary").get("to")}'
+                elif vac.get("salary").get("to") is None:
+                    salary_vacancy = f'от {vac.get("salary").get("from")} до {0}'
+                else:
+                    salary_vacancy = f'от {vac.get("salary").get("from")} до {vac.get("salary").get("to")}'
             experience_vacancy = vac.get('experience').get('name')
-            requirement = f"Требования: {vac.get('snippet').get('requirement')}\nОбязаности: {vac.get('snippet').get('responsibility')}"
-            requirement_and_responsibility = requirement.replace('\n', '')
+            requirement = f"Требования: {vac.get('snippet').get('requirement')}\n" \
+                          f"Обязаности: {vac.get('snippet').get('responsibility')}"
+            requirement_and_responsibility = requirement.replace('\n', '').replace('<highlighttext>', '').replace(
+                '</highlighttext>', '')
             filtered_vacancy = {'name': name_vacancy,
                                 'url': url_vacancy,
                                 'salary': salary_vacancy,
@@ -132,11 +219,12 @@ class SuperJobAPI(JobSeeker):
                 salary_vacancy = f'от {vac.get("payment_from")} до {vac.get("payment_to")}'
             experience_vacancy = vac.get('experience').get('title')
             requirement = vac.get('candidat')
-            requirement_and_responsibility = requirement.replace('\n', '')
+            requirement_and_responsibility = requirement.replace('\n', '').replace('<highlighttext>', '').replace(
+                '</highlighttext>', '')
             filtered_vacancy = {'name': name_vacancy,
                                 'url': url_vacancy,
                                 'salary': salary_vacancy,
-                                'requirements': experience_vacancy,
+                                'experience': experience_vacancy,
                                 'requirement_and_responsibility': requirement_and_responsibility}
             filtered_vacancies.append(filtered_vacancy)
         return filtered_vacancies
@@ -184,23 +272,19 @@ vacancies_full_list = hh_vacancies + superjob_vacancies
 
 #print(vacancies_full_list)
 
-# Создание экземпляра класса для работы с вакансиями
+# Создание экземпляров класса для работы с вакансиями
 names_vac = []
 for i in range(len(vacancies_full_list)):
     names_vac.append(f'vacancy{i}')
     names_vac[i] = Vacancy(vacancies_full_list[i])
 
+names_vac.sort(key=lambda x: x.salary, reverse=True)
 
-print(names_vac[0].__dict__)
-print(names_vac[1].__dict__)
-print(names_vac[2].__dict__)
-print(names_vac[3].__dict__)
-print(names_vac[4].__dict__)
-print(names_vac[5].__dict__)
-print(names_vac[6].__dict__)
+for i in range(len(names_vac)):
+    print(f'{i + 1}: {names_vac[i]}')
 
 # Сохранение информации о вакансиях в файл
 # json_saver = JSONSaver()
-# json_saver.add_vacancy(vacancy)
+# json_saver.add_vacancy(names_vac)
 # json_saver.get_vacancies_by_salary("100 000-150 000 руб.")
 # json_saver.delete_vacancy(vacancy)
