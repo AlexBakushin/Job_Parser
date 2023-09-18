@@ -1,16 +1,31 @@
+# Импорт необходимых библиотек
 import requests
 import json
 from abc import ABC, abstractmethod
 
 
 class Parameters:
+    """
+    Класс для работы с параметрами поиска вакансий на сайтах
+    """
     def __init__(self, text='', area='москва', page=0, per_page=10):
+        """
+        Инициализация основных параметров поиска
+        :param text: Ключегое слово для поиска вакансий
+        :param area: Регион поиска (город, область, край или вся Россия)
+        :param page: Колличество страниц со списками вакансий - не изменяется
+        :param per_page: Колличество вакансий проверенных на каждом из сайтов
+        """
         self.text = text
         self.area = area
         self.page = page
         self.per_page = per_page
 
     def get_params(self):
+        """
+        Вывод всех параметров в виде словаря
+        :return: словарь с параметрами поиска
+        """
         return {
             'text': self.text,
             'area': self.area,
@@ -20,26 +35,43 @@ class Parameters:
 
 
 class Vacancy:
+    """
+    Класс для работы с вакансиями
+    """
     def __init__(self, vacancy):
+        """
+        Инициализация каждой вакансии
+        :param vacancy: список с
+        """
         self.__name = vacancy.get('name')
         self.__url = vacancy.get('url')
         self.__salary_full = vacancy.get('salary')
-        if self.__salary_full != 'По договоренности':
-            self.__salary_min = vacancy.get('salary').rsplit(None, 3)[1]
-            self.__salary_max = vacancy.get('salary').rsplit(None, 3)[3]
-        else:
+
+        if self.__salary_full == 'По договоренности':
             self.__salary_min = 0
             self.__salary_max = 0
-        if self.__salary_max == 0:
-            self.salary = int(self.__salary_min)
         else:
-            self.salary = int(self.__salary_max)
+            self.__salary_min = vacancy.get('salary').rsplit(None, 3)[1]
+            self.__salary_max = vacancy.get('salary').rsplit(None, 3)[3]
+
+        self.salary = max(int(self.__salary_min), int(self.__salary_max))
         self.__experience = vacancy.get('experience')
         self.__requirement_and_responsibility = vacancy.get('requirement_and_responsibility')
 
     def __str__(self):
-        return f"{self.__name} ({self.__salary_full}, {self.__url}, {self.__experience}," \
-               f" {self.__requirement_and_responsibility})"
+        return f"{self.__name} " \
+               f"({self.__salary_full}, " \
+               f"{self.__url}, " \
+               f"{self.__experience}, " \
+               f"{self.__requirement_and_responsibility})"
+
+    def __dict__(self):
+        vacancy_dict = {'name': self.__name,
+                        'url': self.__url,
+                        'salary': self.__salary_full,
+                        'experience': self.__experience,
+                        'requirement_and_responsibility': self.__requirement_and_responsibility}
+        return vacancy_dict
 
     def __add__(self, other):
         """
@@ -124,9 +156,18 @@ class Vacancy:
 
 
 class JobSeeker(ABC):
+    """
+    Абстрактный класс для работы с сайтами для поиска вакансий по API
+    """
     def __init__(self, params):
+        """
+        Инициализация параметров поиска вакансий пользователя
+        :param params: параметры поиска
+        """
         self.params = params
+        # Создание self-переменной для хранения id города или области из функции
         self.town_id = self.get_region_id()
+        # Создание self-переменной для хранения полученных данных
         self.vacancy_data = self.get_vacancies()
 
     @abstractmethod
@@ -238,32 +279,55 @@ class SuperJobAPI(JobSeeker):
 
 
 class JSONSaver:
-    def __init__(self):
-        pass
+    """
+    Класс для сохранения и записи списка вакансий
+    """
+    # Пустой список для словарей вакансий
+    json_vacancy_dict = []
 
-    def add_vacancy(self, vacancy):
-        pass
+    def __init__(self, vacancy):
+        """
+        Инициализация словарей вакансий
+        :param vacancy: словарь с информацией по вакансии
+        """
+        self.vacancy = vacancy
+        # Добавление словаря в список
+        self.json_vacancy_dict.append(self.vacancy)
 
-    def get_vacancies_by_salary(self, salary):
-        pass
-
-    def delete_vacancy(self, vacancy):
-        pass
+    def json_file(self):
+        """
+        Функция для записи списка в json-файл
+        :return:
+        """
+        with open('json-vacancies.json', 'w', encoding='utf-8') as file:
+            json.dump(self.json_vacancy_dict, file, ensure_ascii=False)
 
 
 def user_interaction():
+    """
+    Функция для работы с пользователем
+    :return: Параметры поиска вакансий
+    """
+    # Запрос ключевого слова поиска
     filter_word = input('Введите строку для поиска вакансий по названию:\n')
+    # Запрос региона поиска
     user_area = input('Введите нужный вам регион: \n(По умолчанию Москва)\n')
+    # Выставление региона по умолчанию
     if user_area == '':
-        user_area = 'Москва'
+        user_area = 'москва'
+    # Запрос количества желаемых вакансий
     user_per_page = input('Введите желаемое число вакансий:\n(Не более 100)\n(По умолчанию 10)\n')
+    # Выставление количества по умолчанию
     if user_per_page == '':
         user_per_page = 10
+    # Создание экземпляра класса из параметров пользователя
     inquiry = Parameters(filter_word, user_area, 0, int(user_per_page))
     return inquiry
 
-
+# Начало программы
+# Сбор параметров поиска
 inquiry = user_interaction()
+# Перевод параметров в словарь
 params = inquiry.get_params()
 
 # Создание экземпляра класса для работы с API сайтов с вакансиями
@@ -277,21 +341,27 @@ superjob_vacancies = superjob_api.vacancy_filtering()
 # Обьединение списков вакансий с разных платформ
 vacancies_full_list = superjob_vacancies + hh_vacancies
 
-# print(vacancies_full_list)
-
 # Создание экземпляров класса для работы с вакансиями
+# Пустой словарь для экземпляров класса вакансий
 names_vac = []
+# Иттерация по всем собранным вакансиям
 for i in range(len(vacancies_full_list)):
+    # Создание и добавление переменных по количество найденных вакансий
     names_vac.append(f'vacancy{i}')
+    # Создание экзкмпляров класса по количеству вакансий
     names_vac[i] = Vacancy(vacancies_full_list[i])
 
+# Сортировка всех найденных экземпляров класса по зарплате ("По договоренности" в конце)
 names_vac.sort(key=lambda x: x.salary, reverse=True)
 
+# Иттерация по 'топ - N' экземпляров класса ваканций
 for i in range(int(len(names_vac) / 2)):
+    # Вывод 'топ - N' вакансий в консоль
     print(f'{i + 1}: {names_vac[i]}')
+    # Инициализация __dict__-функции класса вакансии в класс для сохранения в json
+    json_saver = JSONSaver(names_vac[i].__dict__())
 
-# Сохранение информации о вакансиях в файл
-# json_saver = JSONSaver()
-# json_saver.add_vacancy(names_vac)
-# json_saver.get_vacancies_by_salary("100 000-150 000 руб.")
-# json_saver.delete_vacancy(vacancy)
+# Запуск записи массива с информацией об вакансиях в json-файл
+json_saver.json_file()
+# Вывод пользователя по окончанию записи вакансий в файл
+print('Данные сохранены в "json-vacancies.json"')
