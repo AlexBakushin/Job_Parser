@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 
 
 class Parameters:
-    def __init__(self, text='', area='Москва', page=0, per_page=10):
+    def __init__(self, text='', area='москва', page=0, per_page=10):
         self.text = text
         self.area = area
         self.page = page
@@ -145,19 +145,23 @@ class JobSeeker(ABC):
 class HeadHunterAPI(JobSeeker):
 
     def get_region_id(self):
-        user_area = params.get('area')
+        user_area_hh = self.params.get('area').lower()
         regions_dict = json.loads(requests.get('https://api.hh.ru/areas').content.decode())[0].get('areas')
         for region in regions_dict:
             for town in region.get('areas'):
-                if user_area == town.get('name'):
+                if user_area_hh == town.get('name').lower():
                     return town.get('id')
-                elif user_area == 'Москва':
+                elif user_area_hh == 'москва':
                     return '1'
 
     def get_vacancies(self):
-        params['area'] = self.town_id
-        data = json.loads(requests.get('https://api.hh.ru/vacancies', params).content.decode())['items']
-        return data
+        parametrs = {'text': self.params.get('text'), 'area': self.town_id, 'page': 0,
+                     'per_page': self.params.get('per_page')}
+        try:
+            data = json.loads(requests.get('https://api.hh.ru/vacancies', parametrs).content.decode())['items']
+            return data
+        except KeyError:
+            exit('Слишком большое число вакансий!')
 
     def vacancy_filtering(self):
         filtered_vacancies = []
@@ -190,11 +194,11 @@ class HeadHunterAPI(JobSeeker):
 class SuperJobAPI(JobSeeker):
 
     def get_region_id(self):
-        user_area = params.get('area')
+        user_area_sj = self.params.get('area').lower()
         regions_list = json.loads(requests.get('https://api.superjob.ru/2.0/towns/?all=1').content.decode()).get(
             'objects')
         for town in regions_list:
-            if user_area == town.get('title'):
+            if user_area_sj == town.get('title').lower():
                 return town.get('id')
 
     def get_vacancies(self):
@@ -223,7 +227,7 @@ class SuperJobAPI(JobSeeker):
                 requirement_and_responsibility = 'Нет'
             else:
                 requirement_and_responsibility = requirement.replace('\n', '').replace('<highlighttext>', '').replace(
-                '</highlighttext>', '')
+                    '</highlighttext>', '')
             filtered_vacancy = {'name': name_vacancy,
                                 'url': url_vacancy,
                                 'salary': salary_vacancy,
@@ -248,11 +252,11 @@ class JSONSaver:
 
 
 def user_interaction():
-    filter_word = input('Введите строку для поиска вакансий по названию\n')
-    user_area = input('Введите нужный вам регион \n(По умолчанию Москва)\n')
+    filter_word = input('Введите строку для поиска вакансий по названию:\n')
+    user_area = input('Введите нужный вам регион: \n(По умолчанию Москва)\n')
     if user_area == '':
         user_area = 'Москва'
-    user_per_page = input('Введите желаемое число вакансий\n(По умолчанию 10)\n')
+    user_per_page = input('Введите желаемое число вакансий:\n(Не более 100)\n(По умолчанию 10)\n')
     if user_per_page == '':
         user_per_page = 10
     inquiry = Parameters(filter_word, user_area, 0, int(user_per_page))
@@ -271,9 +275,9 @@ hh_vacancies = hh_api.vacancy_filtering()
 superjob_vacancies = superjob_api.vacancy_filtering()
 
 # Обьединение списков вакансий с разных платформ
-vacancies_full_list = hh_vacancies + superjob_vacancies
+vacancies_full_list = superjob_vacancies + hh_vacancies
 
-#print(vacancies_full_list)
+# print(vacancies_full_list)
 
 # Создание экземпляров класса для работы с вакансиями
 names_vac = []
@@ -283,7 +287,7 @@ for i in range(len(vacancies_full_list)):
 
 names_vac.sort(key=lambda x: x.salary, reverse=True)
 
-for i in range(int(len(names_vac)/2)):
+for i in range(int(len(names_vac) / 2)):
     print(f'{i + 1}: {names_vac[i]}')
 
 # Сохранение информации о вакансиях в файл
