@@ -163,7 +163,7 @@ class HeadHunterAPI(JobSeeker):
         filtered_vacancies = []
         for vac in self.vacancy_data:
             name_vacancy = vac.get('name')
-            url_vacancy = vac.get('apply_alternate_url')
+            url_vacancy = vac.get('alternate_url')
             if vac.get('salary') is None:
                 salary_vacancy = 'По договоренности'
             else:
@@ -219,7 +219,10 @@ class SuperJobAPI(JobSeeker):
                 salary_vacancy = f'от {vac.get("payment_from")} до {vac.get("payment_to")}'
             experience_vacancy = vac.get('experience').get('title')
             requirement = vac.get('candidat')
-            requirement_and_responsibility = requirement.replace('\n', '').replace('<highlighttext>', '').replace(
+            if requirement is None:
+                requirement_and_responsibility = 'Нет'
+            else:
+                requirement_and_responsibility = requirement.replace('\n', '').replace('<highlighttext>', '').replace(
                 '</highlighttext>', '')
             filtered_vacancy = {'name': name_vacancy,
                                 'url': url_vacancy,
@@ -280,7 +283,7 @@ for i in range(len(vacancies_full_list)):
 
 names_vac.sort(key=lambda x: x.salary, reverse=True)
 
-for i in range(len(names_vac)):
+for i in range(int(len(names_vac)/2)):
     print(f'{i + 1}: {names_vac[i]}')
 
 # Сохранение информации о вакансиях в файл
