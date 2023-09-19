@@ -8,6 +8,7 @@ class Parameters:
     """
     Класс для работы с параметрами поиска вакансий на сайтах
     """
+
     def __init__(self, text='', area='москва', page=0, per_page=10):
         """
         Инициализация основных параметров поиска
@@ -38,6 +39,7 @@ class Vacancy:
     """
     Класс для работы с вакансиями
     """
+
     def __init__(self, vacancy):
         """
         Инициализация каждой вакансии
@@ -159,6 +161,7 @@ class JobSeeker(ABC):
     """
     Абстрактный класс для работы с сайтами для поиска вакансий по API
     """
+
     def __init__(self, params):
         """
         Инициализация параметров поиска вакансий пользователя
@@ -172,20 +175,39 @@ class JobSeeker(ABC):
 
     @abstractmethod
     def get_vacancies(self):
+        """
+        Абстрактный метод, который получает информацию через API сайта
+        :return: Массив с вакансиями
+        """
         pass
 
     @abstractmethod
     def get_region_id(self):
+        """
+        Абстракный метод для получения id региона поиска вакансий (у своего сайта все id разные)
+        :return: id региона
+        """
         pass
 
     @abstractmethod
     def vacancy_filtering(self):
+        """
+        Абстракный метод для фильтрации массива данных о вакансиях
+        :return: Отфильтрованный и приведенный к общему шаблону массив с необходимой информацией об вакансиях
+        """
         pass
 
 
 class HeadHunterAPI(JobSeeker):
+    """
+    Дочерний класс для работы с API HeadHunter.ru
+    """
 
     def get_region_id(self):
+        """
+        Метод для получения id региона
+        :return: id региона
+        """
         user_area_hh = self.params.get('area').lower()
         regions_dict = json.loads(requests.get('https://api.hh.ru/areas').content.decode())[0].get('areas')
         for region in regions_dict:
@@ -196,6 +218,10 @@ class HeadHunterAPI(JobSeeker):
                     return '1'
 
     def get_vacancies(self):
+        """
+        Метод для получения информации об вакансиях с HH.ru
+        :return: Массив с вакансиями
+        """
         parametrs = {'text': self.params.get('text'), 'area': self.town_id, 'page': 0,
                      'per_page': self.params.get('per_page')}
         try:
@@ -205,6 +231,10 @@ class HeadHunterAPI(JobSeeker):
             exit('Слишком большое число вакансий!')
 
     def vacancy_filtering(self):
+        """
+        Метод для фильтрации массива данных о вакансиях с hh.ru
+        :return: Отфильтрованный и приведенный к общему шаблону массив с необходимой информацией об вакансиях
+        """
         filtered_vacancies = []
         for vac in self.vacancy_data:
             name_vacancy = vac.get('name')
@@ -233,8 +263,15 @@ class HeadHunterAPI(JobSeeker):
 
 
 class SuperJobAPI(JobSeeker):
+    """
+    Класс для работы с API Super Job
+    """
 
     def get_region_id(self):
+        """
+        Метод для получения id региона
+        :return: id региона
+        """
         user_area_sj = self.params.get('area').lower()
         regions_list = json.loads(requests.get('https://api.superjob.ru/2.0/towns/?all=1').content.decode()).get(
             'objects')
@@ -243,6 +280,10 @@ class SuperJobAPI(JobSeeker):
                 return town.get('id')
 
     def get_vacancies(self):
+        """
+        Метод для получения информации об вакансиях с Super Job
+        :return: Массив с вакансиями
+        """
         params['area'] = self.town_id
         parametrs = {'town': params.get('area'), 'catalogues': None, 'count': params.get('per_page'),
                      'keyword': params.get('text')}
@@ -254,6 +295,10 @@ class SuperJobAPI(JobSeeker):
         return data
 
     def vacancy_filtering(self):
+        """
+        Метод для фильтрации массива данных о вакансиях с Super Job
+        :return: Отфильтрованный и приведенный к общему шаблону массив с необходимой информацией об вакансиях
+        """
         filtered_vacancies = []
         for vac in self.vacancy_data:
             name_vacancy = vac.get('profession')
@@ -323,6 +368,7 @@ def user_interaction():
     # Создание экземпляра класса из параметров пользователя
     inquiry = Parameters(filter_word, user_area, 0, int(user_per_page))
     return inquiry
+
 
 # Начало программы
 # Сбор параметров поиска
