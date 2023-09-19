@@ -177,7 +177,7 @@ class JobSeeker(ABC):
     def get_vacancies(self):
         """
         Абстрактный метод, который получает информацию через API сайта
-        :return: Массив с вакансиями
+        :return: Массив с вакансиями hh.ru
         """
         pass
 
