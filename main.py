@@ -410,4 +410,4 @@ for i in range(int(len(names_vac) / 2)):
 # Запуск записи массива с информацией об вакансиях в json-файл
 json_saver.json_file()
 # Вывод пользователя по окончанию записи вакансий в файл
-print('Данные сохранены в "json-vacancies.json"')
+print('\nДанные сохранены в "json-vacancies.json"')
